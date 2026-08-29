@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* 1. DEFINE VARIABLES FOR LIGHT MODE (DEFAULT) */
+:root {
+  --color-midnight: #F5F0FF;      /* Soft Cream */
+  --color-royal: #E0D4F5;         /* Light Purple Header */
+  --color-violet: #D8C8F0;        /* Light Card Background */
+  --color-indigo: #B8A9D9;        /* Light Borders */
+  --color-neonCyan: #008F7A;      /* Darker Cyan for light bg readability */
+  --color-glowYellow: #D4AF37;    /* Darker Gold */
+  --color-lavender: #2D1B4E;      /* Deep Indigo Text */
+  --color-terminalGreen: #00C853; /* Bright Terminal Green for passing scores */
+  
+  --shadow-hard: 4px 4px 0px #B8A9D9;
+  --shadow-hard-sm: 2px 2px 0px #B8A9D9;
+}
+
+/* 2. OVERRIDE VARIABLES FOR DARK MODE */
+.dark {
+  --color-midnight: #1A0B2E;
+  --color-royal: #240046;
+  --color-violet: #3C096C;
+  --color-indigo: #10002B;
+  --color-neonCyan: #00F5D4;
+  --color-glowYellow: #FFD60A;
+  --color-lavender: #E0AAFF;
+  --color-terminalGreen: #00E676; /* Neon Green for dark mode */
+  
+  --shadow-hard: 4px 4px 0px #10002B;
+  --shadow-hard-sm: 2px 2px 0px #10002B;
+}
+
+/* 3. MAP TAILWIND UTILITIES TO THESE VARIABLES */
+@theme {
+  --color-midnight: var(--color-midnight);
+  --color-royal: var(--color-royal);
+  --color-violet: var(--color-violet);
+  --color-indigo: var(--color-indigo);
+  --color-neonCyan: var(--color-neonCyan);
+  --color-glowYellow: var(--color-glowYellow);
+  --color-lavender: var(--color-lavender);
+  --color-terminalGreen: var(--color-terminalGreen);
+  
+  --font-pixel: "Press Start 2P", cursive;
+  --font-mono: "Courier Prime", monospace;
+  
+  --shadow-hard: var(--shadow-hard);
+  --shadow-hard-sm: var(--shadow-hard-sm);
+}
+
+/* Global Keyframes */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* GLOBAL STAR STYLES */
+.sparkle {
+  position: fixed;
+  background-color: var(--color-glowYellow);
+  box-shadow: 0 0 6px var(--color-glowYellow);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  animation: twinkle 3s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ... [Keep all your .sparkle-1 to .sparkle-22 classes exactly as they were] ... */
+.sparkle-1 { top: 5%; left: 10%; width: 4px; height: 4px; animation-delay: 0s; }
+.sparkle-2 { top: 12%; right: 15%; width: 6px; height: 6px; animation-delay: 0.5s; }
+/* ... (paste the rest of your sparkle classes here) ... */
+.sparkle-22 { top: 42%; right: 75%; width: 7px; height: 7px; animation-delay: 2.9s; }
+
+@layer base {
+  body {
+    @apply bg-midnight text-lavender font-mono antialiased min-h-screen overflow-x-hidden transition-colors duration-500;
+    background-image: 
+      linear-gradient(to bottom, rgba(var(--color-midnight-rgb), 0.95), rgba(var(--color-royal-rgb), 0.95)),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.12'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
+  ::-webkit-scrollbar { width: 12px; }
+  ::-webkit-scrollbar-track { @apply bg-indigo; }
+  ::-webkit-scrollbar-thumb { @apply bg-violet border-2 border-neonCyan shadow-hard-sm; }
+  ::selection { @apply bg-neonCyan text-white; }
+}
+
+@layer components {
+  .sparkle-container {
+    @apply fixed inset-0 pointer-events-none z-0 overflow-hidden;
+  }
+  .retro-input {
+    @apply w-full bg-indigo/50 border-2 border-lavender/50 p-3 text-lavender font-mono 
+           focus:border-neonCyan focus:outline-none shadow-hard-sm 
+           placeholder-lavender/50 transition-colors duration-200;
+  }
+  .retro-btn {
+    @apply font-pixel text-[10px] sm:text-xs px-6 py-3 border-2 border-indigo 
+           shadow-hard transition-all active:translate-x-[2px] active:translate-y-[2px] 
+           active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+}
