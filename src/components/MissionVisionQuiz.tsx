@@ -24,11 +24,16 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null) // ✅ Added error state
 
-  // 1. Fetch Data and Select Blanks (8 Mission, 7 Vision)
+  // 1. Fetch Data with Offline Fallback
   useEffect(() => {
     async function fetchData() {
+      setLoading(true)
+      setError(null)
+      
       try {
+        // Try fetching from Supabase first
         const { data, error } = await supabase
           .from('subjects')
           .select('json_data')
@@ -38,20 +43,46 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
         if (!error && data?.json_data) {
           const dataObj = data.json_data as QuizData
           
-          const mShuffled = [...(dataObj.mission_pool || [])].sort(() => Math.random() - 0.5)
-          setMissionBlanks(mShuffled.slice(0, 8))
+          // ✅ CACHE THIS DATA FOR OFFLINE USE
+          localStorage.setItem(`cached_subject_${subjectCode}`, JSON.stringify(dataObj))
           
-          const vShuffled = [...(dataObj.vision_pool || [])].sort(() => Math.random() - 0.5)
-          setVisionBlanks(vShuffled.slice(0, 7))
-          
-          setQuizData(dataObj)
+          processQuizData(dataObj)
+        } else {
+          throw new Error("Fetch failed")
         }
       } catch (err) {
-        console.error("Fetch error:", err)
+        console.warn("Online fetch failed, trying offline cache...", err)
+        
+        // ✅ OFFLINE FALLBACK: Load from localStorage
+        const cachedData = localStorage.getItem(`cached_subject_${subjectCode}`)
+        
+        if (cachedData) {
+          try {
+            const dataObj = JSON.parse(cachedData) as QuizData
+            processQuizData(dataObj)
+          } catch (parseErr) {
+            console.error("Failed to parse cached MV data:", parseErr)
+            setError("Corrupted cache data.")
+          }
+        } else {
+          setError("No internet & no cached data. Please connect to load this quiz first.")
+        }
       } finally {
         setLoading(false)
       }
     }
+
+    // Helper to process data after fetching or loading from cache
+    const processQuizData = (dataObj: QuizData) => {
+      const mShuffled = [...(dataObj.mission_pool || [])].sort(() => Math.random() - 0.5)
+      setMissionBlanks(mShuffled.slice(0, 8))
+      
+      const vShuffled = [...(dataObj.vision_pool || [])].sort(() => Math.random() - 0.5)
+      setVisionBlanks(vShuffled.slice(0, 7))
+      
+      setQuizData(dataObj)
+    }
+
     fetchData()
   }, [subjectCode])
 
@@ -101,8 +132,6 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
     existingScores['UEP_MV'] = scoreData
     localStorage.setItem('quiz_scores', JSON.stringify(existingScores))
     
-    console.log("✅ Score saved:", scoreData)
-    
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -150,9 +179,25 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
     })
   }
 
+  // ✅ LOADING STATE
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-midnight text-neonCyan font-pixel">
       LOADING MISSION...
+    </div>
+  )
+
+  // ✅ ERROR STATE (Prevents infinite loading)
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-midnight text-red-400 font-pixel p-8 text-center">
+      <div>
+        <p className="text-xl mb-6 animate-pulse">️ {error}</p>
+        <button 
+          onClick={onExit}
+          className="font-pixel text-sm px-6 py-3 bg-neonCyan text-indigo border-2 border-indigo shadow-hard-sm hover:bg-white uppercase"
+        >
+          BACK TO DASHBOARD
+        </button>
+      </div>
     </div>
   )
 
@@ -172,13 +217,12 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
         }
       `}</style>
 
-      {/* ✅ FIXED TOP NAVIGATION BAR (Changed from sticky to fixed) */}
+      {/* FIXED TOP NAVIGATION BAR */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-royal/95 backdrop-blur-md border-b-2 border-indigo shadow-hard px-4 sm:px-6 py-2 sm:py-3 flex justify-between items-center gap-2 h-[52px] sm:h-auto">
         <button onClick={onExit} className="font-pixel text-[10px] sm:text-xs px-3 sm:px-4 py-1.5 sm:py-2 border border-lavender hover:bg-violet hover:text-white shadow-hard-sm whitespace-nowrap">
           ← BACK
         </button>
         
-        {/* HIDDEN ON MOBILE, VISIBLE ON SM+ */}
         <div className="hidden sm:block font-pixel text-lg text-neonCyan">
           {!submitted ? 'FILL IN THE BLANKS' : 'RESULTS'}
         </div>
@@ -191,7 +235,6 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
             {isDarkMode ? 'LIGHT' : 'DARK'}
           </button>
           
-          {/* SUBMIT BUTTON - HIDDEN ON MOBILE, SHOWN ON DESKTOP */}
           {!submitted && (
             <button 
               onClick={handleSubmit}
@@ -203,7 +246,7 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
         </div>
       </div>
 
-      {/* ✅ SPACER FOR FIXED HEADER (Prevents content from hiding behind nav) */}
+      {/* SPACER FOR FIXED HEADER */}
       <div className="h-[52px] sm:h-0"></div>
 
       {/* MAIN CONTENT */}
@@ -240,7 +283,6 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
             <div className="text-left space-y-6 sm:space-y-8">
               <h3 className="font-pixel text-lg sm:text-xl text-neonCyan text-center border-b-2 border-indigo pb-4">FULL TEXT REVEAL</h3>
               
-              {/* MISSION REVEAL */}
               <div className="bg-midnight/80 border-2 border-indigo p-4 sm:p-8">
                 <h4 className="font-pixel text-base sm:text-lg text-glowYellow mb-4 text-center uppercase">Mission</h4>
                 <p className="text-base sm:text-lg leading-relaxed sm:leading-loose text-center">
@@ -248,7 +290,6 @@ export default function MissionVisionQuiz({ subjectCode, onExit, isDarkMode, tog
                 </p>
               </div>
 
-              {/* VISION REVEAL */}
               <div className="bg-midnight/80 border-2 border-indigo p-4 sm:p-8">
                 <h4 className="font-pixel text-base sm:text-lg text-glowYellow mb-4 text-center uppercase">Vision</h4>
                 <p className="text-base sm:text-lg leading-relaxed sm:leading-loose text-center">
