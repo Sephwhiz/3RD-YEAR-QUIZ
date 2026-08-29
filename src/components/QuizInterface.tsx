@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { RetroWindow } from './Layout/RetroWindow'
 import { RetroButton } from './UI/RetroButton'
 import type { Subject, Question } from '../hooks/useSubjects'
@@ -15,8 +15,18 @@ export function QuizInterface({ subject, onExit, isDarkMode, toggleDarkMode }: Q
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [score, setScore] = useState(0)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  
+  // Get raw questions from subject data
+  const rawQuestions: Question[] = Array.isArray(subject.json_data) ? subject.json_data : []
+  
+  // ✅ SHUFFLE LOGIC: Shuffle once per session using useMemo
+  // This ensures questions stay in the same order while the user is taking the quiz
+  const questions = useMemo(() => {
+    // Create a copy to avoid mutating original data
+    const shuffled = [...rawQuestions].sort(() => Math.random() - 0.5)
+    return shuffled
+  }, [subject.code]) // Only re-shuffle when the subject changes
 
-  const questions: Question[] = Array.isArray(subject.json_data) ? subject.json_data : []
   const totalQuestions = questions.length
 
   const handleSelectAnswer = (qIndex: number, optionIndex: number) => {
@@ -34,6 +44,7 @@ export function QuizInterface({ subject, onExit, isDarkMode, toggleDarkMode }: Q
     }
     
     let correctCount = 0
+    // Calculate score based on the SHUFFLED questions
     questions.forEach((q, idx) => {
       if (selectedAnswers[idx] === q.answer) correctCount++
     })
@@ -130,7 +141,7 @@ export function QuizInterface({ subject, onExit, isDarkMode, toggleDarkMode }: Q
           </RetroWindow>
         )}
 
-        {/* ALL QUESTIONS LIST */}
+        {/* ALL QUESTIONS LIST (Now Shuffled!) */}
         <div className="space-y-6">
           {questions.map((q, qIdx) => {
             const userAnswer = selectedAnswers[qIdx]
