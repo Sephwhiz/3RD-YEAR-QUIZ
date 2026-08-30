@@ -67,13 +67,34 @@ export function LoginForm() {
           throw new Error('Passwords do not match!')
         }
 
-        const { error } = await supabase.auth.signUp({
+        // 1. SIGN UP THE USER
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin }
+          options: { 
+            emailRedirectTo: window.location.origin,
+            data: { full_name: email.split('@')[0] } // Temporary name from email
+          }
         })
         
-        if (error) throw error
+        if (authError) throw authError
+        
+        // 2. MANUALLY CREATE PROFILE ROW (Fixes the empty table issue)
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              full_name: email.split('@')[0], // Using email prefix as name
+              section: '3N', // Default section since we don't have an input yet
+              role: 'student'
+            })
+          
+          if (profileError) {
+            console.error("Profile creation failed:", profileError)
+            // Don't throw here, let them know account was created but profile might be missing
+          }
+        }
         
         setSuccessMsg('Account created! You can now log in.')
         setTimeout(() => {
